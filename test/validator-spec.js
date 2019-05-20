@@ -3,17 +3,29 @@ var expect = chai.expect;
 var validator_with = require('../lib/validator');
 var non_positive_validation_rule = require('../lib/validator/rules/non_positive');
 var non_divisible_validation_rule = require('../lib/validator/rules/non_divisible');
-
+var factory_with_configuration = require('../lib/factory');
 
 describe('A Validator', function(){
-    var validator;
+    var validator, configuration;
     beforeEach(function(){
-        validator = validator_with([
-            non_positive_validation_rule,
-            non_divisible_validation_rule(3, 'error.three'),
-            non_divisible_validation_rule(5, 'error.five')
-        ]);
+        configuration = function(){
+            configuration.callCount++;
+            configuration.args = Array.prototype.slice.call(arguments);
+            return [
+                {type: 'nonPositive'},
+                {type: 'nonDivisible', options: {divisor: 11, error: 'error.eleven'}}
+            ];
+        }
+        configuration.callCount = 0;
+        var new_validator = factory_with_configuration(configuration);
+        validator = new_validator('alternative');
     });
+
+    it('will access the configuration to get the validation rules', function(){
+        expect(configuration.callCount).to.be.equal(1);
+        expect(configuration.args).to.be.deep.equal(['default']);
+    });
+
     it('will return no errors for valid numbers', function(){
         expect(validator(7)).to.be.empty;
     });
